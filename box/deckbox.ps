@@ -1,0 +1,112 @@
+%!PS-Adobe-3.0
+
+/inch { 72 mul } def
+
+/inches { div add inch } def
+
+% Parameters for deck
+
+/h 3 5 8 inches def
+/w 2 11 16 inches def
+/d 1 3 8 inches def
+/g 0 1 2 inches def
+/c 0 3 8 inches def
+/startingPoint { 0 1 4 inches dup } def
+
+
+% Programmatic computations
+/dminusg d g sub def
+/dashed {
+    gsave
+        currentpoint newpath moveto
+        [ 6 ] 0 setdash
+        exec
+        stroke
+    grestore
+} def
+/solid {
+    gsave
+        currentpoint newpath moveto
+        exec
+        stroke
+    grestore
+} def
+
+
+%
+% MAIN PROGRAM
+%
+gsave
+    90 rotate 0 -8.5 inch translate
+    %0 3 inch translate 0.5 0.5 scale
+
+    startingPoint moveto
+    gsave
+        d d rmoveto
+        % Bottom fold
+        { w d add 2 mul 0 rlineto } dashed
+        % Bottom front flap
+        0 d neg rlineto
+        w 0 rlineto
+        0 dminusg rlineto
+        { 0 g rlineto } solid
+        % Bottom side flap, left
+        d 0 rlineto
+        % Bottom back flap
+        { 0 g rlineto } solid
+        0 dminusg neg rlineto
+        w 0 rlineto
+        0 dminusg rlineto
+        % Bottom side flap, right
+        { 0 g rlineto } solid
+        d 0 rlineto
+        0 g rlineto
+        % Right side flap
+        0 h rlineto
+        d neg 0 rlineto
+        { 0 h neg rmoveto 0 h d add rlineto } dashed
+        % Cap/back fold line
+        { w neg 0 rlineto } dashed
+        % Cap, right side
+        d d rlineto
+        { d 2 mul w add neg 0 rlineto } dashed
+        0 g rlineto
+        d neg 0 rlineto
+        { 0 g neg rlineto } solid
+        % Cap front flap
+        0 dminusg rlineto
+        0 g rlineto
+        w neg 0 rlineto
+        0 g neg rlineto
+        { w 0 rlineto } dashed
+        0 dminusg neg rlineto
+        { 0 g neg rlineto } solid
+        % Cap, left side
+        d neg 0 rlineto
+        0 g neg rlineto
+        d c sub dup neg rlineto
+        { c dup neg rlineto } solid
+        % Middle side flap
+        { c c neg rmoveto 0 h neg rmoveto 0 h d add rlineto } dashed
+        d c sub neg 0 rlineto
+        % Front
+        { 0 h c add neg rlineto } dashed
+        { c neg dup rmoveto c d add 0 rlineto } dashed
+        c 2 mul neg dup rlineto
+        w c 4 mul sub neg 0 rlineto
+        c 2 mul dup neg exch rlineto
+        { 0 h c add neg rlineto } dashed
+        % Left side flap
+        d c sub neg 0 rlineto
+        c neg dup rlineto
+        { d c add 0 rlineto } dashed
+        0 h neg rlineto
+        closepath
+        stroke
+    grestore
+
+    showpage
+
+grestore
+
+%%EOF
