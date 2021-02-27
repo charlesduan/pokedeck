@@ -9,8 +9,10 @@
 /h 3 5 8 inches def
 /w 2 11 16 inches def
 /d 1 3 8 inches def
-/g 0 1 2 inches def
-/c 0 3 8 inches def
+/g 0 1 2 inches def % Foldback flap widths on cap
+/c 0 3 8 inches def % Height of foldback and cutout on front and sides
+/f 0 3 8 inches def % Fold-back cutout space on the back of the cap
+
 /startingPoint { 0 1 4 inches dup } def
 
 
@@ -20,6 +22,16 @@
     gsave
         currentpoint newpath moveto
         [ 6 ] 0 setdash
+        currentlinewidth 2 div setlinewidth
+        exec
+        stroke
+    grestore
+} def
+/dotdashed {
+    gsave
+        currentpoint newpath moveto
+        [ 2 6 6 6 2 6 ] 0 setdash
+        currentlinewidth 2 div setlinewidth
         exec
         stroke
     grestore
@@ -43,36 +55,36 @@ gsave
     startingPoint moveto
     gsave
         d d rmoveto
-        % Bottom fold
-        { w d add 2 mul 0 rlineto } dashed
+        { 0 h rlineto } dashed % Front left vertical fold
+        { w d add 2 mul 0 rlineto } dashed % Bottom horizontal fold
         % Bottom front flap
         0 d neg rlineto
         w 0 rlineto
-        0 dminusg rlineto
-        { 0 g rlineto } solid
-        % Bottom side flap, left
+        % Front right vertical fold, plus leftmost vertical bottom flap cut
+        { 0 d rlineto { 0 h rlineto } dashed } solid
         d 0 rlineto
-        % Bottom back flap
-        { 0 g rlineto } solid
-        0 dminusg neg rlineto
+        % Back left vertical fold, plus second vertical bottom flap cut
+        { 0 d rlineto { 0 h rlineto } dashed } solid
         w 0 rlineto
-        0 dminusg rlineto
-        % Bottom side flap, right
-        { 0 g rlineto } solid
+        % Back right vertical fold, plus third vertical bottom flap cut
+        { 0 d rlineto { 0 h rlineto } dashed } solid
         d 0 rlineto
-        0 g rlineto
+        0 d rlineto
         % Right side flap
         0 h rlineto
         d neg 0 rlineto
-        { 0 h neg rmoveto 0 h d add rlineto } dashed
-        % Cap/back fold line
-        { w neg 0 rlineto } dashed
+        %
+        % At the right corner between the cap and the right side flap
+        %
+        { f neg dup rlineto } solid % Cap/back cut line
+        { w neg 0 rlineto } dashed % Cap/back fold line
         % Cap, right side
         d d rlineto
         { d 2 mul w add neg 0 rlineto } dashed
         0 g rlineto
         d neg 0 rlineto
         { 0 g neg rlineto } solid
+        { 0 g neg rmoveto 0 d neg rlineto } dashed
         % Cap front flap
         0 dminusg rlineto
         0 g rlineto
@@ -81,25 +93,24 @@ gsave
         { w 0 rlineto } dashed
         0 dminusg neg rlineto
         { 0 g neg rlineto } solid
+        { 0 g neg rmoveto 0 d neg rlineto } dashed
         % Cap, left side
         d neg 0 rlineto
         0 g neg rlineto
         d c sub dup neg rlineto
-        { c dup neg rlineto } solid
+        % Cap/back left cut and cap foldback
+        { c f add dup neg rlineto { w f 2 mul sub 0 rlineto } dotdashed } solid
         % Middle side flap
-        { c c neg rmoveto 0 h neg rmoveto 0 h d add rlineto } dashed
         d c sub neg 0 rlineto
         % Front
-        { 0 h c add neg rlineto } dashed
-        { c neg dup rmoveto c d add 0 rlineto } dashed
+        { c neg dup rmoveto c d add 0 rlineto } dotdashed
         c 2 mul neg dup rlineto
         w c 4 mul sub neg 0 rlineto
         c 2 mul dup neg exch rlineto
-        { 0 h c add neg rlineto } dashed
         % Left side flap
         d c sub neg 0 rlineto
         c neg dup rlineto
-        { d c add 0 rlineto } dashed
+        { d c add 0 rlineto } dotdashed
         0 h neg rlineto
         closepath
         stroke
