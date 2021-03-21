@@ -1,0 +1,43 @@
+\documentclass[10pt]{article}
+\usepackage{geometry}
+\geometry{height=10.5in, width=7.5in}
+\usepackage{graphicx}
+\usepackage{fontspec}
+
+\def\cardbox#1{%
+    \leavevmode
+    \vbox{%
+        \hrule
+        \hbox{%
+            \vrule
+                \vbox to 8.8cm{%
+                    \hrule width 6.3cm height 0pt
+                    \hsize=6.3cm
+                    #1%
+                }%
+            \vrule
+        }%
+        \hrule
+    }\allowbreak\ignorespaces
+}
+
+\def\blankcard{\cardbox{\vfill}}%
+
+\long\def\summarycard#1#2#3{%
+    \cardbox{%
+        \begin{center}\textbf{#1}\end{center}
+        \begingroup
+            \parindent=1em
+            #2\par
+        \endgroup
+        \vskip 6pt
+        \hbox
+        \setbox0=\vbox{\divide\hsize by 2 \advance\hsize -1.5pt #3}%
+
+
+\begin{document}
+
+\parindent=0pt
+\lineskip=0pt
+\raggedright
+

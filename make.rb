@@ -23,7 +23,7 @@ ENERGY = {
 
 def process_line(text, io)
   return if text =~ /^#/
-  if text =~ /^(\d+)\s.*\s(\w+)\s+(\d+)\s*$/
+  if text =~ /^(\d+)\s(?:.*\s)?(\w+)\s+(\d+)\s*$/
     count, series, num = $1, $2, $3
 
     if series == 'Energy'
@@ -32,8 +32,10 @@ def process_line(text, io)
       num = "%03d" % num
     end
 
-    filename = name(series, num)
-    system('curl', '-O', url(series, num)) unless File.exist?(filename)
+    filename = File.join("cache", name(series, num))
+    unless File.exist?(filename)
+      system('curl', '-o', filename, url(series, num))
+    end
     count.to_i.times do
       io.puts("\\usecard{#{filename}}")
     end

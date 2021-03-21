@@ -8,8 +8,13 @@ require 'open-uri'
 
 class PokemonTcgApi
 
-  def initialize
+  def initialize(options)
     @key = open("api-key.txt") { |io| io.read.chomp }
+    @options = options
+  end
+
+  def make_dir(dir)
+    Dir.mkdir(dir) unless File.directory?(dir)
   end
 
   def request(endpoint, params = {})
@@ -29,35 +34,20 @@ class PokemonTcgApi
     end
   end
 
-end
-
-class TeXCardBuilder
-  def initialize(card_data)
-  end
-end
-
-
-
-class Executor
-
-  def initialize
-    @api = PokemonTcgApi.new
-    @options = OpenStruct.new(
-      :sets_file => "sets.json",
-      :set_logo_dir => "set-logos",
-      :card_dir => "cards",
-    )
+  def sets
+    return @sets if @sets
+    begin
+      @sets = open(@options.sets_file) do |io| JSON.parse(io.read) end["data"]
+      return @sets
+    rescue Errno::ENOENT
+      raise "Sets not cached; run command \"sets\""
+    end
   end
 
-  def make_dir(dir)
-    Dir.mkdir(dir) unless File.directory?(dir)
-  end
-
-  def load_sets
-    return if @sets
-    @sets = open(@options.sets_file) do |io| JSON.parse(io.read) end["data"]
-  end
-
+  #
+  # Retrieves the API card ID given a PTCGO identifier of expansion code and
+  # card number.
+  #
   def card_id(expansion_code, number)
 
     # Special case because Shining Fates has two number series so code SHF shows
@@ -72,10 +62,45 @@ class Executor
       'SMP' => 'PR-SM',
     }[expansion_code] || expansion_code
 
-    load_sets
-    set = @sets.find { |s| s["ptcgoCode"] == expansion_code }
+    sets.find { |s| s["ptcgoCode"] == expansion_code }
     raise "Unknown set #{expansion_code}" unless set
     return "#{set["id"]}-#{number}"
+  end
+
+  #
+  # Retrieves the card data from the API or the cache.
+  #
+  def card_data(expansion, number)
+    id = card_id(expansion, number)
+    make_dir(@options.card_dir)
+    filename = File.join(@options.card_dir, "#{expansion}-#{number}.json")
+    if File.exist?(filename)
+      return File.open(filename) do |io| JSON.parse(io.read) end
+    else
+      card_data = request("cards/#{id}")["data"]
+      open(File.join(@options.card_dir, "#{id}.json"), "w") do |io|
+        io.write(JSON.pretty_generate(card_data))
+      end
+      return card_data
+    end
+  end
+
+
+end
+
+class TeXCardBuilder
+  def initialize
+  end
+end
+
+
+
+class Executor
+
+  def initialize(options)
+    @api = PokemonTcgApi.new
+    @texer = TexCardBuilder.new
+    @options = options
   end
 
   def run(cmd, *params)
@@ -92,10 +117,9 @@ class Executor
 
   def doc_set_logos ; "Download logos for all expansion sets" end
   def cmd_set_logos
-    load_sets
-    make_dir(@options.set_logo_dir)
+    @api.make_dir(@options.set_logo_dir)
 
-    @sets.each do |set|
+    @api.sets.each do |set|
       url = set["images"]["symbol"]
       name = set["id"]
 
@@ -110,16 +134,16 @@ class Executor
 
   def doc_card ; "Download card data" end
   def cmd_card(expansion, number)
-    id = card_id(expansion, number)
-    card_data = @api.request("cards/#{id}")["data"]
-
-    make_dir(@options.card_dir)
-    open(File.join(@options.card_dir, "#{id}.json"), "w") do |io|
-      io.write(JSON.pretty_generate(card_data))
-    end
+    data = @api.card_data(expansion, number)
+    p data
   end
 
 end
 
-Executor.new.run(*ARGV)
+options = OpenStruct.new(
+  :sets_file => "sets.json",
+  :set_logo_dir => "set-logos",
+  :card_dir => "cards",
+)
+Executor.new(options).run(*ARGV)
 
