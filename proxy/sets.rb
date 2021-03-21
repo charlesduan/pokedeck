@@ -89,7 +89,8 @@ class PokemonTcgApi
 end
 
 class TeXCardBuilder
-  def initialize
+  def initialize(options)
+    @options = options
   end
 end
 
@@ -98,8 +99,8 @@ end
 class Executor
 
   def initialize(options)
-    @api = PokemonTcgApi.new
-    @texer = TexCardBuilder.new
+    @api = PokemonTcgApi.new(options)
+    @texer = TexCardBuilder.new(options)
     @options = options
   end
 
@@ -144,6 +145,7 @@ options = OpenStruct.new(
   :sets_file => "sets.json",
   :set_logo_dir => "set-logos",
   :card_dir => "cards",
+  :templates_dir = "tex_templates",
 )
 Executor.new(options).run(*ARGV)
 
