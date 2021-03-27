@@ -1,0 +1,152 @@
+\ProvidesPackage{pokemon}
+%
+\long\def\cardbox#1{%
+    \leavevmode
+    \vbox{%
+        \hrule
+        \hbox{%
+            \vrule
+                \vbox to 8.8cm{%
+                    \vskip 6pt
+                    \hbox to 6.3cm{%
+                        \hfill
+                        \@tempdima=8.8cm \advance\@tempdima -12pt\relax
+                        \vbox to \@tempdima{%
+                            \hsize=6.3cm \advance\hsize -12pt\relax
+                            #1\vskip 0pt plus 0.0001fil
+                        }%
+                        \hfill
+                    }%
+                    \vskip 6pt
+                }%
+            \vrule
+        }%
+        \hrule
+    }\allowbreak\ignorespaces
+}
+
+\def\blankcard{\cardbox{\vfill}}%
+
+\newbox\summarybox
+\long\def\summarycard#1#2#3{%
+    \cardbox{%
+        \begin{center}\textbf{#1}\end{center}
+        \begingroup
+            \parindent=1em
+            #2\par
+        \endgroup
+        \vskip 6pt
+        \setbox\summarybox=\vbox{%
+            \footnotesize \sffamily
+            \interlinepenalty=\@M
+            \advance\hsize-6pt \divide\hsize\tw@
+            \hrule \@height \z@\relax
+            #3%
+        }%
+        \@tempdima=\ht\summarybox \divide\@tempdima\tw@
+        \setbox\@tempboxa=\vsplit\summarybox to \z@\relax
+        \setbox\@tempboxa=\vsplit\summarybox to \@tempdima\relax
+        \ifdim\@tempdima<\ht\summarybox
+            \@tempdima=\ht\summarybox
+        \fi
+        \hbox{%
+            \vbox to \@tempdima{\unvbox\@tempboxa}%
+            \hskip 6pt
+            \vbox to \@tempdima{\unvbox\summarybox}%
+        }
+    }%
+}
+\def\summaryhead#1{%
+    \vskip 6pt \@plus 6pt \@minus 3pt
+    \textbf{#1}\par\nobreak
+}
+\def\summaryline#1#2#3#4{%
+    \leavevmode
+    \begingroup
+        \rightskip=1em \@plus .5\hsize\relax
+        \leftskip=1em\relax
+        \parfillskip=\z@\relax
+        \hbox{}\nobreak\hskip -1em\relax
+        #1 #2\unskip\nobreak\hskip 6pt \@plus 1fill\relax
+        \hbox{#3 #4}\nobreak\hskip-1em \hbox{}%
+        \par
+    \endgroup
+}
+
+\def\typefont#1{{\fontspec{Pokemon TCG Symbols _2018 U}#1}}%
+\long\def\pokemoncard#1{\cardbox{#1}}
+\def\nameline#1#2#3#4{%
+    \setbox\@tempboxa=\hbox{%
+        \raise 3pt\hbox{\scriptsize\sffamily\itshape \MakeUppercase{#1}}\space
+        \textbf{#2}%
+        \hfill
+        {\tiny HP}\textbf{#3}%
+        \typefont{#4}%
+    }%
+    \ifdim\wd\@tempboxa>\hsize
+        \setbox\@tempboxa=\hbox{%
+            \raise 3pt\hbox{\scriptsize\sffamily\itshape \MakeUppercase{#1}}
+            \textbf{\sffamily#2}%
+            \hfill
+            {\tiny HP}\textbf{#3}%
+            \typefont{#4}%
+        }%
+    \fi
+    \hb@xt@\hsize{\unhbox\@tempboxa}%
+}%
+\def\subtitleline#1#2{%
+    \hb@xt@\hsize{%
+        \footnotesize
+        \begingroup
+            \def\reserved@a{#1}\ifx\reserved@a\@empty\else
+                \emph{Evolves from} \textbf{#1}%
+            \fi
+        \endgroup
+        \hfill
+        \vtop{\def\do##1{\hbox{\textbf\emph{##1}}}#2}%
+    }%
+}
+\def\imageline#1{%
+    \hb@xt@\hsize{\hfil\includegraphics[width=.9\hsize]{#1}\hfil}%
+}
+\def\ability#1#2#3{%
+    \vskip 3pt minus 2pt\relax
+    \begingroup\small\noindent
+        \raise 3pt\hb@xt@27pt{\scriptsize\sffamily\itshape\MakeUppercase{#1}\hfil}%
+        \textbf{#2}\par
+    \endgroup
+    \ruleline{#3}%
+}
+\def\attack#1#2#3#4{%
+    \vskip 3pt minus 2pt\relax
+    \begingroup\small\noindent
+        \hb@xt@27pt{\typefont{#1}\hfil}%
+        \textbf{#2}\hfill\textbf{#3}\par
+    \endgroup
+    \ruleline{#4}%
+}
+\def\wrrline#1#2#3{%
+    \vskip 6pt plus 1fill minus 4pt\relax
+    \hrule
+    \vskip 1pt
+    \begingroup
+        \scriptsize\noindent
+        \def\do##1##2{\typefont{##1}##2}%
+        \hb@xt@.3\hsize{{\tiny weakness} #1\hfill}%
+        \hb@xt@.3\hsize{{\tiny resistance} #2\hfill}%
+        {\tiny retreat} \typefont{#3}\hfill
+        \par
+    \endgroup
+    \vskip 1pt
+    \hrule
+    \vskip 3pt minus 2pt\relax
+}
+\def\ruleline#1{%
+    \begingroup
+        \sffamily\scriptsize #1\par
+    \endgroup
+}
+\def\cardid#1#2{%
+    \vskip 6pt plus 3pt minus 6pt
+    \begingroup\noindent \tiny #1 #2\par\endgroup
+}

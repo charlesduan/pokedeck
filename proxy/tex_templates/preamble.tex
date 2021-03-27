@@ -3,48 +3,10 @@
 \geometry{height=10.5in, width=7.5in}
 \usepackage{graphicx}
 \usepackage{fontspec}
+\setmainfont{Roboto}
+\setsansfont{Roboto Condensed}
 
-\long\def\cardbox#1{%
-    \leavevmode
-    \vbox{%
-        \hrule
-        \hbox{%
-            \vrule
-                \vbox to 8.8cm{%
-                    \hrule width 6.3cm height 0pt
-                    \hsize=6.3cm
-                    #1%
-                }%
-            \vrule
-        }%
-        \hrule
-    }\allowbreak\ignorespaces
-}
-
-\def\blankcard{\cardbox{\vfill}}%
-
-\long\def\summarycard#1#2#3{%
-    \cardbox{%
-        \begin{center}\textbf{#1}\end{center}
-        \begingroup
-            \parindent=1em
-            #2\par
-        \endgroup
-        \vskip 6pt
-        #3%
-        \vfill
-    }%
-}
-\def\summaryline#1#2#3#4{%
-    \leavevmode
-    \begingroup
-        \rightskip=3em
-        \parfillskip=0pt
-        #1 #2\unskip\nobreak\hskip 6pt plus 1fill\relax
-        \hbox{#3 #4}\nobreak\hskip-\rightskip\hbox{}%
-        \par
-    \endgroup
-}
+\usepackage{pokemon}
 
 \begin{document}
 
@@ -52,36 +14,3 @@
 \lineskip=0pt
 \raggedright
 
-
-\summarycard{Test Card}{This is the summary text for what the box should look
-like.}{%
-\summaryline{4}{Vikavolt V with a bunch of text that forces wrapping}{DAA}{60}
-\summaryline{1}{Dedenne-GX}{UNB}{57}
-\summaryline{1}{Galarian Meowth}{RCL}{126}
-\summaryline{4}{Evolution Incense}{SSH}{163}
-\summaryline{1}{Ordinary Rod}{SSH}{171}
-\summaryline{4}{Quick Ball}{SSH}{179}
-\summaryline{4}{Crushing Hammer}{SSH}{159}
-}
-\summarycard{Test Card}{This is the summary text for what the box should look
-like.}{%
-\summaryline{4}{Vikavolt V}{DAA}{60}
-\summaryline{1}{Dedenne-GX}{UNB}{57}
-\summaryline{1}{Galarian Meowth}{RCL}{126}
-\summaryline{4}{Evolution Incense}{SSH}{163}
-\summaryline{1}{Ordinary Rod}{SSH}{171}
-\summaryline{4}{Quick Ball}{SSH}{179}
-\summaryline{4}{Crushing Hammer}{SSH}{159}
-}
-\summarycard{Test Card}{This is the summary text for what the box should look
-like.}{%
-\summaryline{4}{Vikavolt V}{DAA}{60}
-\summaryline{1}{Dedenne-GX}{UNB}{57}
-\summaryline{1}{Galarian Meowth}{RCL}{126}
-\summaryline{4}{Evolution Incense}{SSH}{163}
-\summaryline{1}{Ordinary Rod}{SSH}{171}
-\summaryline{4}{Quick Ball}{SSH}{179}
-\summaryline{4}{Crushing Hammer}{SSH}{159}
-}
-
-\end{document}
