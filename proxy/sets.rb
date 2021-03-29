@@ -170,7 +170,11 @@ class TeXCardBuilder
   }
 
   def encode_types(array)
-    array.map { |x| TYPE_CODES[x] }.join("")
+    if array
+      array.map { |x| TYPE_CODES[x] }.join("")
+    else
+      return ""
+    end
   end
 
   def encode_wr(array)
@@ -184,6 +188,9 @@ class TeXCardBuilder
   end
 
   def text(str)
+    if str =~ /(\(.*\))$/
+      str = "#$`\\parenfont{#$&}"
+    end
     if str && str.length > 40
       "%\n#{str}%\n"
     else
@@ -193,9 +200,18 @@ class TeXCardBuilder
 
   def get_picture(data)
     outfile = File.join(@options.image_dir, data['id'] + ".jpg")
+    case data['supertype']
+    when 'Pokémon'
+      croparea = '620x385+57+98'
+    when 'Trainer'
+      croparea = '620x385+57+145'
+    when 'Energy'
+      croparea = '620x515+57+145'
+    end
     return outfile if File.exist?(outfile)
     URI.open(data['images']['large']) do |io|
-      cmd = [ 'convert', '-', '-crop', '620x385+57+98', outfile ]
+      cmd = [ 'convert', '-', '-crop', croparea, '-colorspace', 'Gray',
+              outfile ]
       puts cmd.join(" ")
       IO.popen(cmd, 'w') do |pio|
         pio.write(io.read)
@@ -206,7 +222,7 @@ class TeXCardBuilder
 
   def add_pokemon(data)
     @buffer << "\\pokemoncard{%\n"
-    @buffer << "\\nameline{#{data['subtypes'][0]}}{#{data['name']}}" \
+    @buffer << "\\nameline{#{data['subtypes'][0]}}{#{text(data['name'])}}" \
       "{#{data['hp']}}{#{encode_types(data['types'])}}\n"
 
     evolve = "#{data['evolvesFrom']}" if data['evolvesFrom']
@@ -248,10 +264,50 @@ class TeXCardBuilder
   end
 
   def add_trainer(data)
+    @buffer << "\\cardbox{%\n"
+    @buffer << "\\trainerline{#{data['subtypes'][0]}}\n"
+    @buffer << "\\nameline{}{#{text(data['name'])}}" \
+      "{#{data['hp']}}{#{encode_types(data['types'])}}\n"
+
+    subtypes = data['subtypes'][1..-1].reject { |x| data['name'].include?(x) }
+    subtypes = subtypes.map { |x| "\\do{#{x}}" }.join
+    if !subtypes.empty?
+      @buffer << "\\subtitleline{}{#{subtypes}}\n"
+    end
+    @buffer << "\\imageline{#{get_picture(data)}}\n"
+
+    @buffer << "\\vfill\n"
+
+    if data['rules']
+      data['rules'].each do |rule|
+        @buffer << "\\ruleline{#{text(rule)}}\n"
+      end
+    end
+
+    if data['abilities']
+      data['abilities'].each do |ability|
+        @buffer << "\\ability{#{ability['type']}}{#{ability['name']}}" \
+          "{#{text(ability['text'])}}\n"
+      end
+    end
+
+    if data['attacks']
+      data['attacks'].each do |attack|
+        @buffer << "\\attack{#{encode_types(attack['cost'])}}" \
+          "{#{attack['name']}}" \
+          "{#{attack['damage']}}{#{text(attack['text'])}}\n"
+      end
+    end
+
+    @buffer << "\\vfill\n"
+    @buffer << "\\cardid{#{data['set']['ptcgoCode']}}{#{data['number']}}\n"
+    @buffer << "}\n"
   end
 
 
   def add_energy(data)
+    return if data['subtypes'][0] == 'Basic'
+    add_trainer(data)
   end
 
   def add_summary

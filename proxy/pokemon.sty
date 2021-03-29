@@ -1,5 +1,9 @@
 \ProvidesPackage{pokemon}
+\RequirePackage{relsize}
 %
+\def\ifnotempty#1#2{%
+    \def\reserved@a{#1}\ifx\reserved@a\@empty\else#2\fi
+}
 \long\def\cardbox#1{%
     \leavevmode
     \vbox{%
@@ -74,37 +78,47 @@
 }
 
 \def\typefont#1{{\fontspec{Pokemon TCG Symbols _2018 U}#1}}%
+\def\parenfont#1{{\itshape\mdseries\smaller#1}}
 \long\def\pokemoncard#1{\cardbox{#1}}
+\def\nametypebox#1{%
+    \ifnotempty{#1}{%
+        \raise 3pt\hbox{\scriptsize\sffamily\itshape \MakeUppercase{#1}}\space
+    }%
+}
+\def\trainerline#1{%
+    \begingroup\footnotesize\emph{\textbf{\MakeUppercase{#1}}}\par\endgroup
+}
 \def\nameline#1#2#3#4{%
     \setbox\@tempboxa=\hbox{%
-        \raise 3pt\hbox{\scriptsize\sffamily\itshape \MakeUppercase{#1}}\space
+        \nametypebox{#1}%
         \textbf{#2}%
         \hfill
-        {\tiny HP}\textbf{#3}%
+        \ifnotempty{#3}{{\tiny HP}\textbf{#3}}%
         \typefont{#4}%
     }%
     \ifdim\wd\@tempboxa>\hsize
         \setbox\@tempboxa=\hbox{%
-            \raise 3pt\hbox{\scriptsize\sffamily\itshape \MakeUppercase{#1}}
+            \nametypebox{#1}%
             \textbf{\sffamily#2}%
             \hfill
-            {\tiny HP}\textbf{#3}%
+            \ifnotempty{#3}{{\tiny HP}\textbf{#3}}%
             \typefont{#4}%
         }%
     \fi
     \hb@xt@\hsize{\unhbox\@tempboxa}%
+    \vskip 6pt minus 5pt\relax
 }%
 \def\subtitleline#1#2{%
+    \vskip -6pt minus -5pt
     \hb@xt@\hsize{%
         \footnotesize
         \begingroup
-            \def\reserved@a{#1}\ifx\reserved@a\@empty\else
-                \emph{Evolves from} \textbf{#1}%
-            \fi
+            \ifnotempty{#1}{\emph{Evolves from} \textbf{#1}}%
         \endgroup
         \hfill
         \vtop{\def\do##1{\hbox{\textbf\emph{##1}}}#2}%
     }%
+    \vskip 6pt minus 5pt\relax
 }
 \def\imageline#1{%
     \hb@xt@\hsize{\hfil\includegraphics[width=.9\hsize]{#1}\hfil}%
