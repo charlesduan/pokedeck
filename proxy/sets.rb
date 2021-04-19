@@ -30,7 +30,7 @@ class PokemonTcgApi
     when Net::HTTPSuccess
       return JSON.parse(res.body)
     else
-      raise "HTTP error: #{res.class}"
+      raise "HTTP error for #{uri}: #{res.class}"
     end
   end
 
@@ -78,6 +78,8 @@ class PokemonTcgApi
       'SSP' => 'PR-SW',
       'SMP' => 'PR-SM',
     }[expansion_code] || expansion_code
+
+    number = number.sub(/\A0+/, '')
 
     set = sets.find { |s| s["ptcgoCode"] == expansion_code }
     raise "Unknown set #{expansion_code}" unless set
@@ -137,6 +139,12 @@ class TeXCardBuilder
   def add_card(quantity, expansion, number)
     data = @api.card_data(expansion, number)
 
+    if quantity =~ /:/
+      print_qty, quantity = $`.to_i, $'.to_i
+    else
+      print_qty = quantity = quantity.to_i
+    end
+
     @card_count += quantity
 
     if @cards[data['supertype']][data]
@@ -146,7 +154,7 @@ class TeXCardBuilder
     end
 
     return if @options.no_cards
-    quantity.times do
+    print_qty.times do
       case data['supertype']
       when 'Pokémon' then add_pokemon(data)
       when 'Trainer' then add_trainer(data)
@@ -212,7 +220,6 @@ class TeXCardBuilder
     URI.open(data['images']['large']) do |io|
       cmd = [ 'convert', '-', '-crop', croparea, '-colorspace', 'Gray',
               outfile ]
-      puts cmd.join(" ")
       IO.popen(cmd, 'w') do |pio|
         pio.write(io.read)
       end
@@ -404,8 +411,8 @@ class Executor
   end
   def read_deck(io)
     io.each do |line|
-      if line =~ /^(\d+)\s(?:.*\s)?(\w+)\s+(\w+)\s*$/
-        @texer.add_card($1.to_i, $2, $3)
+      if line =~ /^([\d:]+)\s(?:.*\s)?(\w+)\s+(\w+)\s*$/
+        @texer.add_card($1, $2, $3)
       else
         warn("Could not parse line: #{line}")
       end

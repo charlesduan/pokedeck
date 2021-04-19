@@ -4,6 +4,23 @@
 \def\ifnotempty#1#2{%
     \def\reserved@a{#1}\ifx\reserved@a\@empty\else#2\fi
 }
+\long\def\divider#1{%
+    \leavevmode
+    \vbox{%
+        \hrule
+        \hbox{%
+            \vrule
+                \vbox to 7.5cm{%
+                    \vskip 6pt
+                    \hsize=8.8cm
+                    \centerline{\textbf{#1}}%
+                    \vfill
+                }%
+            \vrule
+        }%
+        \hrule
+    }\allowbreak\ignorespaces
+}
 \long\def\cardbox#1{%
     \leavevmode
     \vbox{%
