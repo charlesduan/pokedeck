@@ -94,7 +94,7 @@ class PokemonTcgApi
     make_dir(@options.card_dir)
     filename = File.join(@options.card_dir, "#{expansion}-#{number}.json")
     if File.exist?(filename)
-      return File.open(filename) do |io| JSON.parse(io.read) end
+      return File.open(filename, 'r:UTF-8') do |io| JSON.parse(io.read) end
     else
       card_data = request("cards/#{id}")["data"]
       open(filename, "w") do |io|
@@ -104,6 +104,9 @@ class PokemonTcgApi
     end
   end
 
+  def set_logo_file(set_id)
+    return File.join(@options.set_logo_dir, "#{set_id}.png")
+  end
 
 end
 
@@ -175,6 +178,7 @@ class TeXCardBuilder
     'Fairy' => 'F',
     'Dragon' => 'N',
     'Colorless' => 'C',
+    '◇' => 'p',
   }
 
   def encode_types(array)
@@ -195,10 +199,15 @@ class TeXCardBuilder
     return res
   end
 
-  def text(str)
+  def text(str, title = false)
+    TYPE_CODES.each do |type, code|
+      next if title && type =~ /\w/
+      str = str.gsub(/#{type}/, "\\typefont{#{code}}")
+    end
     if str =~ /(\(.*\))$/
       str = "#$`\\parenfont{#$&}"
     end
+    str = str.gsub('&', "\\\\&")
     if str && str.length > 40
       "%\n#{str}%\n"
     else
@@ -227,20 +236,16 @@ class TeXCardBuilder
     return outfile
   end
 
-  def add_pokemon(data)
-    @buffer << "\\pokemoncard{%\n"
-    @buffer << "\\nameline{#{data['subtypes'][0]}}{#{text(data['name'])}}" \
-      "{#{data['hp']}}{#{encode_types(data['types'])}}\n"
-
-    evolve = "#{data['evolvesFrom']}" if data['evolvesFrom']
+  def add_subtypes(data, evolve)
     subtypes = data['subtypes'][1..-1].reject { |x| data['name'].include?(x) }
     subtypes = subtypes.map { |x| "\\do{#{x}}" }.join
     if evolve || !subtypes.empty?
       @buffer << "\\subtitleline{#{evolve}}{#{subtypes}}\n"
     end
+  end
 
-    @buffer << "\\imageline{#{get_picture(data)}}\n"
 
+  def add_abilities_attacks(data)
     if data['abilities']
       data['abilities'].each do |ability|
         @buffer << "\\ability{#{ability['type']}}{#{ability['name']}}" \
@@ -255,6 +260,32 @@ class TeXCardBuilder
           "{#{attack['damage']}}{#{text(attack['text'])}}\n"
       end
     end
+  end
+
+  def add_cardid(data)
+    logo_file = @api.set_logo_file(data['set']['id'])
+    set_text = data['set']['ptcgoCode']
+    if File.exist?(logo_file)
+      set_text += " \\setlogo{#{logo_file}}"
+    else
+      warn("No logo for expansion #{set_text} (#{logo_file}); run 'set_logos'")
+    end
+
+    @buffer << "\\cardid{#{set_text}}{#{data['number']}}\n"
+  end
+
+  def add_pokemon(data)
+    @buffer << "\\pokemoncard{%\n"
+    @buffer << "\\nameline{#{data['subtypes'][0]}}" \
+      "{#{text(data['name'], true)}}" \
+      "{#{data['hp']}}{#{encode_types(data['types'])}}\n"
+
+    evolve = "#{data['evolvesFrom']}" if data['evolvesFrom']
+    add_subtypes(data, evolve)
+
+    @buffer << "\\imageline{#{get_picture(data)}}\n"
+
+    add_abilities_attacks(data)
 
     @buffer << "\\wrrline{#{encode_wr(data['weaknesses'])}}" \
       "{#{encode_wr(data['resistances'])}}" \
@@ -262,25 +293,57 @@ class TeXCardBuilder
 
     if data['rules']
       data['rules'].each do |rule|
-        @buffer << "\\ruleline{#{text(rule)}}\n"
+        @buffer << "\\trainerruleline{#{text(rule)}}\n"
       end
     end
 
-    @buffer << "\\cardid{#{data['set']['ptcgoCode']}}{#{data['number']}}\n"
+    add_cardid(data)
     @buffer << "}\n"
   end
 
   def add_trainer(data)
     @buffer << "\\cardbox{%\n"
     @buffer << "\\trainerline{#{data['subtypes'][0]}}\n"
-    @buffer << "\\nameline{}{#{text(data['name'])}}" \
+    @buffer << "\\nameline{}{#{text(data['name'], true)}}" \
       "{#{data['hp']}}{#{encode_types(data['types'])}}\n"
 
-    subtypes = data['subtypes'][1..-1].reject { |x| data['name'].include?(x) }
-    subtypes = subtypes.map { |x| "\\do{#{x}}" }.join
-    if !subtypes.empty?
-      @buffer << "\\subtitleline{}{#{subtypes}}\n"
+    add_subtypes(data, nil)
+    @buffer << "\\imageline{#{get_picture(data)}}\n"
+
+    @buffer << "\\vfill\n"
+
+    trainer_rules = []
+
+    if data['rules']
+      data['rules'].each do |rule|
+        case rule
+        when /^You may play / then trainer_rules.push(rule)
+        when /\(Prism Star\) Rule: / then trainer_rules.push(rule)
+        when /^This card stays in play / then trainer_rules.push(rule)
+        else @buffer << "\\ruleline{#{text(rule)}}\n"
+        end
+      end
     end
+
+    add_abilities_attacks(data)
+
+    @buffer << "\\vfill\n"
+    trainer_rules.each do |rule|
+      @buffer << "\\trainerruleline{#{text(rule)}}\n"
+    end
+    add_cardid(data)
+    @buffer << "}\n"
+  end
+
+
+  def add_energy(data)
+    return if data['subtypes'][0] == 'Basic'
+    @buffer << "\\cardbox{%\n"
+    @buffer << "\\trainerline{#{data['subtypes'][0]} Energy}\n"
+    @buffer << "\\nameline{}{#{text(data['name'], true)}}" \
+      "{#{data['hp']}}{#{encode_types(data['types'])}}\n"
+
+    add_subtypes(data, nil)
     @buffer << "\\imageline{#{get_picture(data)}}\n"
 
     @buffer << "\\vfill\n"
@@ -291,30 +354,11 @@ class TeXCardBuilder
       end
     end
 
-    if data['abilities']
-      data['abilities'].each do |ability|
-        @buffer << "\\ability{#{ability['type']}}{#{ability['name']}}" \
-          "{#{text(ability['text'])}}\n"
-      end
-    end
-
-    if data['attacks']
-      data['attacks'].each do |attack|
-        @buffer << "\\attack{#{encode_types(attack['cost'])}}" \
-          "{#{attack['name']}}" \
-          "{#{attack['damage']}}{#{text(attack['text'])}}\n"
-      end
-    end
+    add_abilities_attacks(data)
 
     @buffer << "\\vfill\n"
-    @buffer << "\\cardid{#{data['set']['ptcgoCode']}}{#{data['number']}}\n"
+    add_cardid(data)
     @buffer << "}\n"
-  end
-
-
-  def add_energy(data)
-    return if data['subtypes'][0] == 'Basic'
-    add_trainer(data)
   end
 
   def add_summary
@@ -324,9 +368,9 @@ class TeXCardBuilder
 
     @buffer << "\\summarycard{#@name}{#@description}{%\n"
     @cards.each do |type, list|
-      @buffer << "\\summaryhead{#{type}}\n"
+      @buffer << "\\summaryhead{#{type}}\n" unless list.empty?
       list.each do |data, quantity|
-        name = data['name'].gsub(/\(.*\)/, '')
+        name = text(data['name'].gsub(/\(.*\)/, ''))
 
         @buffer << "\\summaryline{#{quantity}}{#{name}}"
         if data['supertype'] == 'Energy' && data['subtypes'].include?('Basic')
@@ -383,7 +427,7 @@ class Executor
       name = set["id"]
 
       URI.open(url) do |io|
-        open(File.join(@options.set_logo_dir, "#{name}.png"), 'w') do |wio|
+        open(@api.set_logo_file(name), 'w') do |wio|
           wio.write(io.read)
         end
       end

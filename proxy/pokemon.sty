@@ -94,8 +94,8 @@
     \endgroup
 }
 
-\def\typefont#1{{\fontspec{Pokemon TCG Symbols _2018 U}#1}}%
-\def\parenfont#1{{\itshape\mdseries\smaller#1}}
+\def\typefont#1{{\upshape\mdseries\fontspec{Pokemon TCG Symbols _2018 U}#1}}%
+\long\def\parenfont#1{{\itshape\mdseries\smaller#1}}
 \long\def\pokemoncard#1{\cardbox{#1}}
 \def\nametypebox#1{%
     \ifnotempty{#1}{%
@@ -140,10 +140,13 @@
 \def\imageline#1{%
     \hb@xt@\hsize{\hfil\includegraphics[width=.9\hsize]{#1}\hfil}%
 }
+\newlength\energywidth \energywidth=30pt
 \def\ability#1#2#3{%
     \vskip 3pt minus 2pt\relax
     \begingroup\small\noindent
-        \raise 3pt\hb@xt@27pt{\scriptsize\sffamily\itshape\MakeUppercase{#1}\hfil}%
+        \raise 3pt\hb@xt@\energywidth{%
+            \scriptsize\sffamily\itshape\MakeUppercase{#1}\hfil
+        }%
         \textbf{#2}\par
     \endgroup
     \ruleline{#3}%
@@ -151,7 +154,7 @@
 \def\attack#1#2#3#4{%
     \vskip 3pt minus 2pt\relax
     \begingroup\small\noindent
-        \hb@xt@27pt{\typefont{#1}\hfil}%
+        \hb@xt@\energywidth{\typefont{#1}\hfil}%
         \textbf{#2}\hfill\textbf{#3}\par
     \endgroup
     \ruleline{#4}%
@@ -173,11 +176,23 @@
     \vskip 3pt minus 2pt\relax
 }
 \def\ruleline#1{%
+    \ifnum\lastpenalty=\tw@ \vskip 3pt \fi
     \begingroup
         \sffamily\scriptsize #1\par
     \endgroup
+    \penalty\tw@
+}
+\def\trainerruleline#1{%
+    \ifnum\lastpenalty=\thr@@ \vskip 3pt \fi
+    \begingroup
+        \sffamily\tiny\itshape #1\par
+    \endgroup
+    \penalty\thr@@
 }
 \def\cardid#1#2{%
     \vskip 6pt plus 3pt minus 6pt
     \begingroup\noindent \tiny #1 #2\par\endgroup
+}
+\def\setlogo#1{%
+    \includegraphics[height=.8\baselineskip]{#1}%
 }
