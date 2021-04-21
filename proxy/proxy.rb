@@ -5,6 +5,7 @@ require 'uri'
 require 'net/http'
 require 'ostruct'
 require 'open-uri'
+require 'nokogiri'
 
 class PokemonTcgApi
 
@@ -44,17 +45,20 @@ class PokemonTcgApi
     end
   end
 
-  ENERGY_IDS = {
-    1 => 'sm1-164', # Grass
-    2 => 'sm1-165', # Fire
-    3 => 'sm1-166', # Water
-    4 => 'sm1-167', # Lightning
-    5 => 'sm1-168', # Psychic
-    6 => 'sm1-169', # Fighting
-    7 => 'sm1-170', # Darkness
-    8 => 'sm1-171', # Metal
-    9 => 'sm1-172', # Fairy
-  }
+  # Array of all energy types. The first is empty so that the array indexes line
+  # up with the card number values.
+  ENERGY_IDS = [
+    {},
+    { :num => 1, :id => 'sm1-164', :type => 'Grass' },
+    { :num => 2, :id => 'sm1-165', :type => 'Fire' },
+    { :num => 3, :id => 'sm1-166', :type => 'Water' },
+    { :num => 4, :id => 'sm1-167', :type => 'Lightning' },
+    { :num => 5, :id => 'sm1-168', :type => 'Psychic' },
+    { :num => 6, :id => 'sm1-169', :type => 'Fighting' },
+    { :num => 7, :id => 'sm1-170', :type => 'Darkness' },
+    { :num => 8, :id => 'sm1-171', :type => 'Metal' },
+    { :num => 9, :id => 'sm1-172', :type => 'Fairy' },
+  ]
 
   #
   # Retrieves the API card ID given a PTCGO identifier of expansion code and
@@ -71,7 +75,7 @@ class PokemonTcgApi
       return "swsh45-#{number}"
 
     when 'Energy'
-      return ENERGY_IDS[number.to_i]
+      return ENERGY_IDS[number.to_i][:id]
     end
 
     expansion_code = {
@@ -118,26 +122,34 @@ class TeXCardBuilder
     @options = options
     @api = @options.api
 
+    new_deck
+
     #
-    # Keeps count of the cards added to this print.
+    # Buffer of text to add to the document after the preamble.
     #
+    @buffer = ""
+  end
+
+  def new_deck
+    @params = {}
     @card_count = 0
     @cards = {
       'Pokémon' => {},
       'Trainer' => {},
       'Energy' => {},
     }
-
-    #
-    # Buffer of text to add to the document after the preamble.
-    #
-    @buffer = ""
-
-    @name = "[New Deck]"
-    @description = "[Description goes here]"
   end
 
+
   attr_accessor :name, :description
+
+  def param(key, val)
+    if @params[key]
+      @params[key] += ' ' + val.strip
+    else
+      @params[key] = val.strip
+    end
+  end
 
   def add_card(quantity, expansion, number)
     data = @api.card_data(expansion, number)
@@ -262,16 +274,19 @@ class TeXCardBuilder
     end
   end
 
-  def add_cardid(data)
+  def set_text(data)
+    res = data['set']['ptcgoCode']
     logo_file = @api.set_logo_file(data['set']['id'])
-    set_text = data['set']['ptcgoCode']
     if File.exist?(logo_file)
-      set_text += " \\setlogo{#{logo_file}}"
+      res += " \\setlogo{#{logo_file}}"
     else
-      warn("No logo for expansion #{set_text} (#{logo_file}); run 'set_logos'")
+      warn("No logo for expansion #{res} (#{logo_file}); run 'set_logos'")
     end
+    return res
+  end
 
-    @buffer << "\\cardid{#{set_text}}{#{data['number']}}\n"
+  def add_cardid(data)
+    @buffer << "\\cardid{#{set_text(data)}}{#{data['number']}}\n"
   end
 
   def add_pokemon(data)
@@ -362,21 +377,24 @@ class TeXCardBuilder
   end
 
   def add_summary
+
+    name = (@params['name'] || '[Deck Name]').gsub("&", "\\\\&")
+    description = @params['description'].gsub("&", "\\\\&")
     if @card_count != 60
       warn("Expected 60 cards, but deck has #@card_count")
     end
 
-    @buffer << "\\summarycard{#@name}{#@description}{%\n"
+    @buffer << "\\summarycard{#{name}}{#{description}}{%\n"
     @cards.each do |type, list|
       @buffer << "\\summaryhead{#{type}}\n" unless list.empty?
       list.each do |data, quantity|
-        name = text(data['name'].gsub(/\(.*\)/, ''))
+        name = text(data['name'].gsub(/\(.*\)/, ''), true)
 
         @buffer << "\\summaryline{#{quantity}}{#{name}}"
         if data['supertype'] == 'Energy' && data['subtypes'].include?('Basic')
           @buffer << "{}{}\n"
         else
-          @buffer << "{#{data['set']['ptcgoCode']}}{#{data['number']}}\n"
+          @buffer << "{#{set_text(data)}}{#{data['number']}}\n"
         end
       end
     end
@@ -392,6 +410,90 @@ class TeXCardBuilder
     )
     io.write(@buffer)
     io.write("\\end{document}\n")
+  end
+end
+
+
+
+class BulbaParser
+  def initialize(api, options)
+    @api = api
+    @options = options
+  end
+
+  def parse(url)
+    @doc = URI.open(url) do |io| Nokogiri::HTML(io) end
+    name = @doc.at_xpath("//h1/text()").content
+    name.gsub!(" (TCG)", "")
+    res = "name: #{name}\n"
+
+    desc = @doc.at_css("h2 span#Description")
+    if desc
+      description = ""
+      desc.xpath("./parent::h2/following-sibling::*").each do |desc|
+        break unless desc.name == 'p'
+        description += desc.content.gsub("\n", ' ') + " "
+      end
+      res << "description: #{description.strip}\n"
+    end
+
+    tbl = @doc.at_xpath(
+      "//span[@id='Deck_list']/parent::h2/following-sibling::table"
+    )
+    unless tbl
+      warn("Deck list table not found")
+      return
+    end
+    tbl.xpath(".//tr").each do |tr|
+      text = parse_row(tr)
+      res << "#{text}\n" if text
+    end
+
+    filename = File.join(
+      @options.theme_deck_dir, name.downcase.gsub(/\s+/, '-') + ".txt"
+    )
+    open(filename, 'w') do |io|
+      io.write(res)
+    end
+  end
+
+  def parse_row(tr)
+    count = tr.at_xpath("./td[1]")
+    return unless count && count.content =~ /^\d+/
+    count = $&
+
+    pokemon = tr.at_xpath("./td[2]/a/@title")
+    return unless pokemon
+
+    if pokemon.content =~ /\s+\(([^()]+) (\d+)\)$/
+      pokemon, expansion, num = $`, $1, $2
+    elsif pokemon.content =~ /^(\w+) Energy \(TCG\)$/
+      type = $1
+      return "#{count} Rainbow Energy SUM 137" if type == "Rainbow"
+      data = PokemonTcgApi::ENERGY_IDS.find { |e| e[:type] == $1 }
+      unless data
+        warn("Unknown energy type #{type}")
+        return
+      end
+      return "#{count} #{type} Energy #{data[:num]}"
+    elsif pokemon.content == "Double Colorless Energy (TCG)"
+      return "#{count} Double Colorless Energy SUM 136"
+    else
+      warn("Pokemon could not be parsed: #{pokemon}")
+      return
+    end
+
+    if expansion == "SM Promo"
+      expansion = "SM Black Star Promos"
+      num = "SM#{num}"
+    end
+
+    set = @api.sets.find { |s| s['name'] == expansion }
+    unless set
+      warn("Could not find set #{expansion}")
+      return
+    end
+    return "#{count} #{pokemon} #{set['ptcgoCode']} #{num}"
   end
 end
 
@@ -442,21 +544,46 @@ class Executor
   end
 
   def doc_deck ; "Produce a proxy deck sheet" end
-  def cmd_deck(file = nil)
-    if file
-      open(file) do |io| read_deck(io) end
+  def cmd_deck(*args)
+    if !args.empty?
+      args.each do |file|
+        @texer.new_deck
+        open(file) do |io| read_deck(io) end
+        @texer.add_summary
+      end
     else
       read_deck(STDIN)
+      @texer.add_summary
     end
-    @texer.add_summary
     open(@options.tex_output, 'w') do |io|
       @texer.write_file(io)
     end
   end
+
+  def doc_list ; "Produce one or more deck lists" end
+  def cmd_list(*args)
+    @options.no_cards = true
+    cmd_deck(*args)
+  end
+
+  def doc_bulba ; "Parse a Bulbapedia theme deck list" end
+  def cmd_bulba(*args)
+    b = BulbaParser.new(@api, @options)
+    args.each do |url|
+      b.parse(url)
+    end
+  end
+
   def read_deck(io)
+    last_tag = nil
     io.each do |line|
-      if line =~ /^([\d:]+)\s(?:.*\s)?(\w+)\s+(\w+)\s*$/
+      if line =~ /^([\d:]+)\s(?:.*\s)?([\w-]+)\s+(\w+)\s*$/
         @texer.add_card($1, $2, $3)
+      elsif line =~ /^(\w+): /
+        last_tag = $1
+        @texer.param(last_tag, $')
+      elsif line =~ /^\s+/
+        @texer.param(last_tag, $')
       else
         warn("Could not parse line: #{line}")
       end
@@ -472,6 +599,8 @@ options = OpenStruct.new(
   :templates_dir => "tex_templates",
   :tex_preamble => "preamble.tex",
   :tex_output => "deck.tex",
+  :no_cards => false,
+  :theme_deck_dir => "theme-decks",
 )
 Executor.new(options).run(*ARGV)
 

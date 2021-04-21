@@ -4,58 +4,51 @@
 \def\ifnotempty#1#2{%
     \def\reserved@a{#1}\ifx\reserved@a\@empty\else#2\fi
 }
-\long\def\divider#1{%
-    \leavevmode
+\long\def\ruledbox#1#2#3{%
     \vbox{%
-        \hrule
-        \hbox{%
-            \vrule
-                \vbox to 7.5cm{%
-                    \vskip 6pt
-                    \hsize=8.8cm
-                    \centerline{\textbf{#1}}%
-                    \vfill
-                }%
-            \vrule
-        }%
-        \hrule
+        \hrule \hbox{%
+            \vrule \vbox to #2{%
+                \hsize=#1\relax
+                #3%
+            }\vrule
+        }\hrule
+    }%
+}
+\long\def\marginbox#1#2#3{%
+    \ruledbox{#1}{#2}{%
+        \vskip 6pt
+        \hb@xt@\hsize{%
+            \hfill
+            \@tempdima=#2\relax \advance\@tempdima-12pt\relax
+            \vbox to \@tempdima{%
+                \advance\hsize-12pt\relax
+                #3\vskip 0pt plus 0.0001fil
+            }\hfill
+        }\vfill
+    }%
+}
+\long\def\divider#1{%
+    \leavevmode\ruledbox{8.8cm}{7.3cm}{%
+        \begin{center}\textbf{#1}\end{center}
+        \vfill
     }\allowbreak\ignorespaces
 }
 \long\def\cardbox#1{%
-    \leavevmode
-    \vbox{%
-        \hrule
-        \hbox{%
-            \vrule
-                \vbox to 8.8cm{%
-                    \vskip 6pt
-                    \hbox to 6.3cm{%
-                        \hfill
-                        \@tempdima=8.8cm \advance\@tempdima -12pt\relax
-                        \vbox to \@tempdima{%
-                            \hsize=6.3cm \advance\hsize -12pt\relax
-                            #1\vskip 0pt plus 0.0001fil
-                        }%
-                        \hfill
-                    }%
-                    \vskip 6pt
-                }%
-            \vrule
-        }%
-        \hrule
-    }\allowbreak\ignorespaces
+    \leavevmode\marginbox{6.3cm}{8.8cm}{#1}\allowbreak\ignorespaces
 }
-
 \def\blankcard{\cardbox{\vfill}}%
-
 \newbox\summarybox
 \long\def\summarycard#1#2#3{%
-    \cardbox{%
-        \begin{center}\textbf{#1}\end{center}
-        \begingroup
-            \parindent=1em
-            #2\par
-        \endgroup
+    \leavevmode
+    \rotatebox{90}{\marginbox{8.8cm}{7.3cm}{%
+        \begin{centering}\textbf{#1}\par\end{centering}
+        \def\reserved@a{#2}\ifx\reserved@a\@empty\else
+            \vskip 6pt
+            \begingroup
+                \parindent=1em
+                \tiny #2\par
+            \endgroup
+        \fi
         \vskip 6pt
         \setbox\summarybox=\vbox{%
             \footnotesize \sffamily
@@ -75,7 +68,7 @@
             \hskip 6pt
             \vbox to \@tempdima{\unvbox\summarybox}%
         }
-    }%
+    }}\allowbreak\ignorespaces
 }
 \def\summaryhead#1{%
     \vskip 6pt \@plus 6pt \@minus 3pt
@@ -88,8 +81,11 @@
         \leftskip=1em\relax
         \parfillskip=\z@\relax
         \hbox{}\nobreak\hskip -1em\relax
-        #1 #2\unskip\nobreak\hskip 6pt \@plus 1fill\relax
-        \hbox{#3 #4}\nobreak\hskip-1em \hbox{}%
+        #1 #2\unskip\allowbreak\hbox{}\nobreak
+        \def\reserved@a{#4}\ifx\reserved@a\@empty\else
+            \leaders\hbox{ . }\hskip 6pt \@plus 1fill\relax
+            \hbox{#3 #4}\nobreak\hskip-1em \hbox{}%
+        \fi
         \par
     \endgroup
 }
