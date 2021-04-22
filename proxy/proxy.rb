@@ -379,7 +379,9 @@ class TeXCardBuilder
   def add_summary
 
     name = (@params['name'] || '[Deck Name]').gsub("&", "\\\\&")
-    description = @params['description'].gsub("&", "\\\\&")
+    if @params['description']
+      description = @params['description'].gsub("&", "\\\\&")
+    end
     if @card_count != 60
       warn("Expected 60 cards, but deck has #@card_count")
     end
