@@ -40,7 +40,16 @@
 \newbox\summarybox
 \long\def\summarycard#1#2#3{%
     \leavevmode
-    \rotatebox{90}{\marginbox{8.8cm}{7.3cm}{%
+    \rotatebox{90}{\summarycardbase{#1}{#2}{#3}}%
+    \allowbreak\ignorespaces
+}
+\long\def\unrotatedsummarycard#1#2#3{%
+    \leavevmode
+    \summarycardbase{#1}{#2}{#3}%
+    \allowbreak\ignorespaces
+}
+\long\def\summarycardbase#1#2#3{%
+    \marginbox{8.8cm}{7.3cm}{%
         \begin{centering}\textbf{#1}\par\end{centering}
         \def\reserved@a{#2}\ifx\reserved@a\@empty\else
             \vskip 6pt
@@ -67,8 +76,8 @@
             \vbox to \@tempdima{\unvbox\@tempboxa}%
             \hskip 6pt
             \vbox to \@tempdima{\unvbox\summarybox}%
-        }
-    }}\allowbreak\ignorespaces
+        }%
+    }%
 }
 \def\summaryhead#1{%
     \vskip 6pt \@plus 6pt \@minus 3pt
