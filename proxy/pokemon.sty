@@ -79,9 +79,56 @@
         }%
     }%
 }
+\def\blanksummarycard{%
+    \unrotatedsummarycard{%
+        \hbox{Deck: \leaders\hrule\hskip .7\hsize}%
+    }{}{%
+        \summaryhead{Trainers}
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \summaryhead{Pok\'emon}
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+        \summaryhead{Energy}
+        \blanksummaryline
+        \blanksummaryline
+        \blanksummaryline
+    }%
+}
 \def\summaryhead#1{%
     \vskip 6pt \@plus 6pt \@minus 3pt
     \textbf{#1}\par\nobreak
+}
+\def\blanksummaryline{%
+    \summaryline{%
+        \leaders\hrule\hskip 1em\relax
+    }{%
+    }{}{\unskip \leaders\hrule\hskip 3em\relax}%
 }
 \def\summaryline#1#2#3#4{%
     \leavevmode

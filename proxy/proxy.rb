@@ -514,6 +514,15 @@ class Executor
     send("cmd_#{cmd}", *params)
   end
 
+  def doc_help ; "Show a list of commands" end
+  def cmd_help
+    self.class.instance_methods(false).map(&:to_s).sort.each do |m|
+      next unless m =~ /^cmd_/
+      command = $'
+      puts "%10s: %s\n" % [ command, send("doc_#{command}") ]
+    end
+  end
+
   def doc_sets ; "Retrieve data on all expansion sets" end
   def cmd_sets
     sets = @api.request("sets")
@@ -576,6 +585,28 @@ class Executor
     end
   end
 
+  def doc_symlist ; "Make a list of symbols" end
+
+  def cmd_symlist
+    open(@options.symlist_output, 'w') do |f|
+      f.puts("\\documentclass[12pt,twocolumn]{article}")
+      f.puts("\\usepackage{pokemon}")
+      f.puts("\\usepackage{graphicx}")
+      f.puts("\\parindent=0pt")
+      f.puts("\\begin{document}")
+      @api.sets.each do |set|
+        next unless set['legalities']['expanded'] == 'Legal'
+        f.puts("\\setlogo{#{@api.set_logo_file(set['id'])}}")
+        f.puts("#{set['ptcgoCode']}: #{set['name'].gsub('&', '\\\\&')}")
+        if set['legalities']['standard'] == 'Legal'
+          f.puts("(Standard legal)")
+        end
+        f.puts
+      end
+      f.puts("\\end{document}")
+    end
+  end
+
   def read_deck(io)
     last_tag = nil
     io.each do |line|
@@ -601,6 +632,7 @@ options = OpenStruct.new(
   :templates_dir => "tex_templates",
   :tex_preamble => "preamble.tex",
   :tex_output => "deck.tex",
+  :symlist_output => "symlist.tex",
   :no_cards => false,
   :theme_deck_dir => "theme-decks",
 )
